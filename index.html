@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pokémon Master Set</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="top">
+    <h1>Master Set <span class="muted">· DKK</span></h1>
+    <form id="search-form" class="search">
+      <input id="search-input" type="search" placeholder="Pokémon name or Pokédex no. (e.g. Umbreon, 197)" required>
+      <button type="submit">Load set</button>
+    </form>
+    <select id="project-select" aria-label="Saved collections"></select>
+    <button id="settings-btn" type="button" class="ghost" aria-label="Settings">⚙ Settings</button>
+  </header>
+
+  <main>
+    <p id="status" class="status" role="status"></p>
+
+    <section id="empty" class="empty">
+      <h2>Start a master set</h2>
+      <p>Type a Pokémon above. The app fetches every English card of that Pokémon, splits it into the printed variants
+        (normal, holo, reverse holo, 1st edition…) and prices each in Danish kroner from Cardmarket, the EU marketplace most
+        Danish collectors buy from. Mark what you own, record what you paid, and enter your own price when you find a better
+        deal on DBA or in a local shop.</p>
+    </section>
+
+    <section id="collection" hidden>
+      <div class="summary">
+        <div class="summary-head">
+          <h2 id="project-title"></h2>
+          <div class="actions">
+            <button id="refresh-btn" type="button" class="ghost">↻ Refresh prices</button>
+            <button id="csv-btn" type="button" class="ghost">⤓ CSV</button>
+            <button id="delete-btn" type="button" class="ghost danger">Remove</button>
+          </div>
+        </div>
+        <div class="progress"><div id="progress-bar"></div></div>
+        <dl class="stats">
+          <div><dt>Collected</dt><dd id="stat-owned"></dd></div>
+          <div><dt>Value owned</dt><dd id="stat-value"></dd></div>
+          <div><dt>Spent</dt><dd id="stat-spent"></dd></div>
+          <div><dt>Left to buy</dt><dd id="stat-remaining"></dd></div>
+        </dl>
+        <p id="stat-note" class="muted small"></p>
+      </div>
+
+      <div class="toolbar">
+        <div class="seg" role="group" aria-label="Filter">
+          <button data-filter="all" class="on">All</button>
+          <button data-filter="missing">Missing</button>
+          <button data-filter="owned">Owned</button>
+          <button data-filter="excluded">Excluded</button>
+        </div>
+        <input id="filter-text" type="search" placeholder="Filter by set, name, rarity…">
+        <select id="sort-select" aria-label="Sort">
+          <option value="release">Release order</option>
+          <option value="price-desc">Price high → low</option>
+          <option value="price-asc">Price low → high</option>
+        </select>
+        <div class="seg" role="group" aria-label="View">
+          <button data-view="grid" class="on">Grid</button>
+          <button data-view="list">List</button>
+        </div>
+      </div>
+
+      <div id="cards" class="cards grid"></div>
+    </section>
+  </main>
+
+  <dialog id="card-dialog">
+    <form method="dialog" id="card-form">
+      <div class="dlg-body">
+        <img id="cd-img" alt="">
+        <div class="dlg-fields">
+          <h3 id="cd-title"></h3>
+          <p id="cd-meta" class="muted small"></p>
+          <p id="cd-prices" class="small"></p>
+          <label class="check"><input type="checkbox" id="cd-owned"> I own this</label>
+          <div class="row">
+            <label>Condition
+              <select id="cd-condition"></select>
+            </label>
+            <label>Paid (DKK)
+              <input id="cd-paid" type="number" min="0" step="0.01" inputmode="decimal">
+            </label>
+          </div>
+          <label>My price (DKK) <span class="muted small">overrides market price, e.g. from DBA</span>
+            <input id="cd-manual" type="number" min="0" step="0.01" inputmode="decimal">
+          </label>
+          <label>Note
+            <input id="cd-note" type="text" placeholder="Seller, graded, wishlist…">
+          </label>
+          <label class="check"><input type="checkbox" id="cd-excluded"> Exclude from my master set</label>
+          <div id="cd-links" class="links"></div>
+        </div>
+      </div>
+      <menu>
+        <button value="cancel" class="ghost">Cancel</button>
+        <button value="save" id="cd-save">Save</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <dialog id="settings-dialog">
+    <form method="dialog" id="settings-form">
+      <h3>Settings</h3>
+      <div class="row">
+        <label>EUR → DKK <input id="st-eur" type="number" step="0.0001" min="0"></label>
+        <label>USD → DKK <input id="st-usd" type="number" step="0.0001" min="0"></label>
+      </div>
+      <button type="button" id="st-live" class="ghost small">Fetch today's rates (ECB)</button>
+      <label>Price source
+        <select id="st-source"></select>
+      </label>
+      <label class="check"><input type="checkbox" id="st-vat"> Add 25% Danish VAT (moms) to US prices</label>
+      <label>Shop links <span class="muted small">one per line: <code>Name | URL with {q}</code></span>
+        <textarea id="st-links" rows="4"></textarea>
+      </label>
+      <label>Pokémon TCG API key <span class="muted small">optional, raises rate limits (dev.pokemontcg.io)</span>
+        <input id="st-key" type="text" autocomplete="off">
+      </label>
+      <div class="row">
+        <button type="button" id="st-export" class="ghost">Export backup</button>
+        <label class="file-btn ghost">Import backup<input type="file" id="st-import" accept="application/json" hidden></label>
+      </div>
+      <menu>
+        <button value="cancel" class="ghost">Cancel</button>
+        <button value="save">Save</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <footer class="muted small">
+    Card data &amp; prices: <a href="https://pokemontcg.io" target="_blank" rel="noopener">pokemontcg.io</a> (Cardmarket &amp; TCGplayer).
+    Your collection is stored in this browser only — use <em>Export backup</em> to keep a copy.
+  </footer>
+
+  <script type="module" src="src/app.js"></script>
+</body>
+</html>
